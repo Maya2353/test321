@@ -5,12 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiz Village Game</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            background: #f4f4f4;
+        }
         .hidden { display: none; }
         #village { margin-top: 20px; }
         #level-selection { margin-top: 20px; }
-        .level { margin: 5px; }
-        #answers button { margin: 5px; padding: 10px 20px; }
+        .level { 
+            margin: 5px; 
+            padding: 10px 20px; 
+            cursor: pointer; 
+        }
+        #quiz { 
+            margin-top: 30px; 
+            background: #fff; 
+            display: inline-block; 
+            padding: 20px 30px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        #answers { margin-top: 15px; }
+        #answers button { 
+            margin: 5px; 
+            padding: 10px 20px; 
+            cursor: pointer; 
+        }
     </style>
 </head>
 <body>
@@ -32,29 +53,45 @@
     </div>
 
     <script>
+        // --- Datenstruktur für Levels und Fragen ---
         let levels = Array(9).fill().map((_, index) => ({
             level: index + 1,
             questions: generateQuestions(index + 1),
             unlocked: false
         }));
-        levels[0].unlocked = true;
+        levels[0].unlocked = true; // Level 1 freigeschaltet
 
         let currentLevel = 0;
         let currentQuestion = 0;
         let score = 0;
 
+        // Jede Frage hat genau EINE richtige Antwort (correct = Index der richtigen Antwort)
         function generateQuestions(level) {
             return [
-                { question: `What is ${level + 1} + ${level + 1}?`, answers: [2 * (level + 1), 2 + level, level + 1, level], correct: 0 },
-                { question: `What is ${level} - 1?`, answers: [level - 1, level + 1, level, 0], correct: 0 },
-                { question: `How many levels are there?`, answers: [9, 8, level, level + 1], correct: 0 },
-                { question: `What does 1 + 1 equal?`, answers: [1, level, 0, 2], correct: 3 },
-                { question: `What is ${level} * 2?`, answers: [level * 2, level + 2, level, level - 1], correct: 0 }
+                { 
+                    question: `Level ${level}: What is ${level} + 1?`, 
+                    answers: [level + 1, level + 2, level, level - 1], 
+                    correct: 1 // nur diese ist richtig
+                },
+                { 
+                    question: `Level ${level}: What is ${level} * 2?`, 
+                    answers: [level, level * 2, level + 3, level - 2], 
+                    correct: 1 
+                },
+                { 
+                    question: `Level ${level}: What does 1 + 1 equal?`, 
+                    answers: [1, 3, 2, 0], 
+                    correct: 2 
+                }
             ];
         }
 
+        // --- Level starten ---
         function startLevel(levelIndex) {
-            if (!levels[levelIndex].unlocked) return alert("Level not unlocked");
+            if (!levels[levelIndex].unlocked) {
+                alert("Level not unlocked");
+                return;
+            }
 
             currentLevel = levelIndex;
             currentQuestion = 0;
@@ -66,34 +103,56 @@
             displayQuestion();
         }
 
+        // --- Frage anzeigen ---
         function displayQuestion() {
             const questions = levels[currentLevel].questions;
 
-            if (currentQuestion < questions.length) {
-                document.getElementById("question").innerText = questions[currentQuestion].question;
-
-                document.getElementById("answers").innerHTML =
-                    questions[currentQuestion].answers.map((answer, index) =>
-                        `<button onclick="checkAnswer(${index})">${answer}</button>`
-                    ).join("");
-            } else {
+            if (currentQuestion >= questions.length) {
                 completeLevel();
+                return;
             }
+
+            const q = questions[currentQuestion];
+            const questionEl = document.getElementById("question");
+            const answersEl = document.getElementById("answers");
+
+            questionEl.textContent = q.question;
+            answersEl.innerHTML = "";
+
+            // Buttons erzeugen und Event Listener anhängen
+            q.answers.forEach((answerText, index) => {
+                const btn = document.createElement("button");
+                btn.textContent = answerText;
+                btn.addEventListener("click", () => {
+                    checkAnswer(index);
+                });
+                answersEl.appendChild(btn);
+            });
         }
 
-        function checkAnswer(index) {
+        // --- Antwort prüfen ---
+        function checkAnswer(selectedIndex) {
             const questions = levels[currentLevel].questions;
+            const q = questions[currentQuestion];
 
-            if (index === questions[currentQuestion].correct) score++;
+            // genau eine richtige Antwort
+            if (selectedIndex === q.correct) {
+                score++;
+                alert("Correct!");
+            } else {
+                alert("Wrong!");
+            }
 
             currentQuestion++;
             displayQuestion();
         }
 
+        // --- Level abschließen ---
         function completeLevel() {
-            alert(`Level completed! You answered ${score} questions correctly.`);
+            alert(`Level ${levels[currentLevel].level} completed! You answered ${score} questions correctly.`);
 
-            if (score >= 3 && currentLevel + 1 < levels.length) {
+            // Nächstes Level freischalten, wenn mind. 2 richtige Antworten
+            if (score >= 2 && currentLevel + 1 < levels.length) {
                 levels[currentLevel + 1].unlocked = true;
                 alert("You earned money to repair your village! Next level unlocked.");
             }
@@ -101,18 +160,29 @@
             resetGame();
         }
 
+        // --- Zurück zur Levelauswahl ---
         function resetGame() {
             document.getElementById("quiz").classList.add("hidden");
             document.getElementById("levels").style.display = "block";
             generateLevelButtons();
         }
 
+        // --- Level-Buttons erzeugen ---
         function generateLevelButtons() {
-            document.getElementById("levels").innerHTML = levels.map((level, i) =>
-                `<button class="level" onclick="startLevel(${i})" ${level.unlocked ? '' : 'disabled'}>Level ${level.level}</button>`
-            ).join("");
+            const levelsContainer = document.getElementById("levels");
+            levelsContainer.innerHTML = "";
+
+            levels.forEach((level, i) => {
+                const btn = document.createElement("button");
+                btn.textContent = `Level ${level.level}`;
+                btn.className = "level";
+                btn.disabled = !level.unlocked;
+                btn.addEventListener("click", () => startLevel(i));
+                levelsContainer.appendChild(btn);
+            });
         }
 
+        // Initiale Buttons erzeugen
         generateLevelButtons();
     </script>
 </body>
